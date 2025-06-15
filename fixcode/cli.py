@@ -5,6 +5,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import sys
 from pathlib import Path
+import argparse
 
 load_dotenv(dotenv_path=Path.cwd() / ".env")
 client = OpenAI(
@@ -42,11 +43,11 @@ def run_program(file):
 def read_file(file):
     return Path(file).read_text()
 
-def ask_llm(code, error):
-    print("[•] Asking Mistral (via OpenRouter) for a fix...")
+def ask_llm(code, error, umodel):
+    print("[•] Asking LLM for a fix...")
     try:
         response = client.chat.completions.create(
-            model="mistralai/mistral-7b-instruct:free",
+            model=umodel,
             messages=[{
                 "role": "user",
                 "content": f"I ran this code and got an error. Suggest a fix.\n\nCode:\n{code}\n\nError:\n{error}"
@@ -57,17 +58,44 @@ def ask_llm(code, error):
     except Exception as e:
         print("[X] API call failed:", str(e))
         return None
+    
+def update_env_model(new_model):
+    env_path = Path(".env")
+    if env_path.exists():
+        lines = env_path.read_text().splitlines()
+        updated = False
+        for i, line in enumerate(lines):
+            if line.startswith("FIXCODE_MODEL="):
+                lines[i] = f"FIXCODE_MODEL={new_model}"
+                updated = True
+                break
+        if not updated:
+            lines.append(f"FIXCODE_MODEL={new_model}")
+        env_path.write_text("\n".join(lines) + "\n")
+    else:
+        env_path.write_text(f"FIXCODE_MODEL={new_model}\n")
+
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python tool.py <filename>")
-        return
+    parser = argparse.ArgumentParser(description="Fix broken code using LLM suggestions.")
+    parser.add_argument("filename", help="Path to the code file to run and fix")
+    parser.add_argument(
+        "--model",
+        default=os.getenv("FIXCODE_MODEL", "mistralai/mistral-7b-instruct:free"),
+        help="OpenRouter/OpenAI model name to use (also configurable via FIXCODE_MODEL in .env)"
+    )
 
-    file = sys.argv[1]
+    args = parser.parse_args()
+    file = args.filename
+    model = args.model
+
+    if "--model" in sys.argv:
+        update_env_model(model)
+
     error = run_program(file)
     if error:
         code = read_file(file)
-        suggestion = ask_llm(code, error)
+        suggestion = ask_llm(code, error, model)
         if suggestion:
             print("\n[✔] Suggested Fix:\n")
             print(suggestion)
