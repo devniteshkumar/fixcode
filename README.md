@@ -143,11 +143,3 @@ To add support for new programming languages, edit `fixcode/executors.json`:
 ```
 
 The `$file` placeholder will be replaced with the actual file path.
-
-## Limitations
-
-- Only detects runtime errors (not syntax errors caught by linters)
-- Requires appropriate interpreters/compilers to be installed
-- AI suggestions may not always be perfect - use as guidance
-- Default AI model is mistralai/mistral-7b-instruct:free (configurable via --model flag or FIXCODE_MODEL env var)
-
