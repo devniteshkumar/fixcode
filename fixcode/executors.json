@@ -1,0 +1,6 @@
+{
+  ".py": "python3 $file",
+  ".c": "gcc $file && ./a.out",
+  ".cpp": "g++ $file && ./a.out",
+  ".js": "node $file"
+}
