@@ -7,6 +7,8 @@ A command-line tool that automatically detects errors in your code and suggests 
 - **Multi-language support**: Supports Python, C, C++, and JavaScript files
 - **Automatic error detection**: Runs your code and captures runtime errors
 - **AI-powered fixes**: Uses OpenAI-compatible APIs to suggest intelligent code fixes
+- **Interactive or automatic fixes**: Choose to review suggestions or apply them automatically
+- **Auto-retry on fixes**: After applying a fix, automatically re-runs to verify the solution
 - **Simple CLI interface**: Just run `fixcode yourfile` and get instant suggestions
 
 ## Supported Languages
@@ -70,6 +72,15 @@ FIXCODE_MODEL=mistralai/mistral-7b-instruct:free
 fixcode path/to/your/file.py
 ```
 
+### Automatic Fix Application
+
+Use the `-y` or `--yes` flag to automatically apply suggested fixes without prompting:
+
+```bash
+fixcode path/to/your/file.py -y
+fixcode path/to/your/file.py --yes
+```
+
 ### Specify AI Model
 
 You can specify which AI model to use with the `--model` flag:
@@ -110,16 +121,17 @@ fixcode/
 ## Command Line Options
 
 ```
-fixcode [-h] [--model MODEL] filename
+fixcode [-h] [--model MODEL] [-y] filename
 
 Fix broken code using LLM suggestions.
 
 positional arguments:
-  filename       Path to the code file to run and fix
+  filename         Path to the code file to run and fix
 
 optional arguments:
-  -h, --help     show this help message and exit
-  --model MODEL  OpenRouter/OpenAI model name to use (also configurable via FIXCODE_MODEL in .env)
+  -h, --help       show this help message and exit
+  --model MODEL    OpenRouter/OpenAI model name to use (also configurable via FIXCODE_MODEL in .env)
+  -y, --yes        Automatically apply the suggested fix without prompting
 ```
 
 ## Dependencies
@@ -143,11 +155,3 @@ To add support for new programming languages, edit `fixcode/executors.json`:
 ```
 
 The `$file` placeholder will be replaced with the actual file path.
-
-## Limitations
-
-- Only detects runtime errors (not syntax errors caught by linters)
-- Requires appropriate interpreters/compilers to be installed
-- AI suggestions may not always be perfect - use as guidance
-- Default AI model is mistralai/mistral-7b-instruct:free (configurable via --model flag or FIXCODE_MODEL env var)
-
