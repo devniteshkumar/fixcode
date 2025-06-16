@@ -50,11 +50,14 @@ def ask_llm(code, error, umodel):
             model=umodel,
             messages=[{
                 "role": "user",
-                "content": f"I ran this code and got an error. Suggest a fix.\n\nCode:\n{code}\n\nError:\n{error}"
+                "content": (
+                    "I ran this code and got an error.\n\n"
+                    f"Code:\n{code}\n\nError:\n{error}"
+                )
             }],
             temperature=0.3
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content.strip()
     except Exception as e:
         print("[X] API call failed:", str(e))
         return None
@@ -74,6 +77,24 @@ def update_env_model(new_model):
         env_path.write_text("\n".join(lines) + "\n")
     else:
         env_path.write_text(f"FIXCODE_MODEL={new_model}\n")
+        
+import re
+
+def extract_raw_code(response: str) -> str:
+    # Case 1: Extract from markdown code block
+    match = re.search(r"```(?:\w+)?\n(.*?)```", response, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+
+    # Case 2: No markdown formatting, just return up to first explanation line
+    lines = response.strip().splitlines()
+    code_lines = []
+    for line in lines:
+        # Stop at explanation
+        if line.strip().lower().startswith(("the error", "explanation", "this code", "note:")):
+            break
+        code_lines.append(line)
+    return "\n".join(code_lines).strip()
 
 
 def main():
@@ -84,10 +105,16 @@ def main():
         default=os.getenv("FIXCODE_MODEL", "mistralai/mistral-7b-instruct:free"),
         help="OpenRouter/OpenAI model name to use (also configurable via FIXCODE_MODEL in .env)"
     )
+    parser.add_argument(
+        "-y", "--yes",
+        action="store_true",
+        help="Automatically apply the suggested fix without prompting"
+    )
 
     args = parser.parse_args()
     file = args.filename
     model = args.model
+    auto_apply = args.yes
 
     if "--model" in sys.argv:
         update_env_model(model)
@@ -97,8 +124,21 @@ def main():
         code = read_file(file)
         suggestion = ask_llm(code, error, model)
         if suggestion:
+            cleaned = extract_raw_code(suggestion)
             print("\n[✔] Suggested Fix:\n")
-            print(suggestion)
+            print(cleaned)
+            if auto_apply:
+                Path(file).write_text(cleaned)
+                print("[✓] File updated with suggested fix.")
+                main()
+            else:
+                apply = input("\n[?] Apply this fix to the file? (y/n): ").strip().lower()
+                if apply == 'y':
+                    Path(file).write_text(cleaned)
+                    print("[✓] File updated with suggested fix.")
+                    main()
+                else:
+                    print("[•] Fix not applied.")
 
 if __name__ == "__main__":
     main()
