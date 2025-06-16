@@ -31,7 +31,7 @@ For more languages, add to the executors.json
 3. Install the package:
 
 ```bash
-pip install -e .
+pip install .
 ```
 
 ### Requirements
